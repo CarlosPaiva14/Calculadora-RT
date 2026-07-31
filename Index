@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Reforma Tributária</title>
+    <style>
+        /* ========================================= */
+        /* ESTILOS GERAIS E LAYOUT                   */
+        /* ========================================= */
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #334155;
+            --border-color: #cbd5e1;
+            --card-bg: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0b0f19;
+                --text-main: #f8fafc;
+                --text-muted: #cbd5e1;
+                --border-color: #334155;
+                --card-bg: #1e293b;
+            }
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 950px;
+            width: 100%;
+        }
+
+        h1 { margin-bottom: 5px; }
+        p.subtitle { margin-top: 0; margin-bottom: 25px; color: var(--text-muted); }
+
+        /* ========================================= */
+        /* FORMULÁRIOS                               */
+        /* ========================================= */
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        input, select {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            background-color: #f97316; /* Cor primária do botão */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: #ea580c; }
+
+        .hidden { display: none !important; }
+
+        /* ========================================= */
+        /* RESULTADOS E CARDS                        */
+        /* ========================================= */
+        .results-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .result-col {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .result-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
+        }
+
+        .card-asis { border-left: 6px solid #64748b; }
+        .card-tobe { border-left: 6px solid #2563eb; }
+
+        .result-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        .card-divider {
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 10px 0;
+        }
+
+        .card-item {
+            font-size: 0.95rem;
+            margin: 8px 0;
+        }
+
+        .card-list {
+            margin: 8px 0;
+            padding-left: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .card-list li { margin-bottom: 6px; }
+        .card-list li b { color: var(--text-main); }
+        .hidden-item { visibility: hidden; }
+
+        .highlight-cost {
+            margin-top: auto;
+            padding: 14px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+
+        /* Cores fixas da caixa de destaque (mesmo no modo escuro mantém legibilidade) */
+        .highlight-cost-box {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .highlight-cost-box {
+                background-color: #0f172a;
+                color: #93c5fd;
+                border-color: #1e3a8a;
+            }
+        }
+
+        /* ========================================= */
+        /* BANNERS DE STATUS                         */
+        /* ========================================= */
+        .status-banner {
+            padding: 14px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.05rem;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .status-success { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
+        .status-warning { background-color: #fef3c7; color: #78350f; border: 1px solid #fde68a; }
+        .status-neutral { background-color: #f1f5f9; color: #1e293b; border: 1px solid #e2e8f0; }
+
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .result-col { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🧮 Simulador da Reforma Tributária</h1>
+    <p class="subtitle">Compare o custo líquido de aquisição atual (<b>AS IS</b>) com a projeção pós-reforma (<b>TO BE</b>).</p>
+
+    <!-- FORMULÁRIO -->
+    <div class="form-row">
+        <div class="form-group">
+            <label>1. Selecione o Cenário</label>
+            <select id="cenario" onchange="atualizarCampos()">
+                <option value="">-- Selecione --</option>
+                <option value="Cenário 1">Cenário 1 - Aquisição de Matéria-Prima</option>
+                <option value="Cenário 2">Cenário 2 - Aquisição de Serviços</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>2. Regime do Fornecedor</label>
+            <select id="regime" onchange="atualizarCampos()">
+                <option value="">-- Selecione --</option>
+                <option value="Lucro Real">Lucro Real</option>
+                <option value="Lucro Presumido">Lucro Presumido</option>
+                <option value="Simples Nacional">Simples Nacional</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group" style="flex: 2;">
+            <label>3. Valor Total da Fatura Atual (R$)</label>
+            <input type="text" id="valorFatura" placeholder="Ex: 100.000,00">
+        </div>
+
+        <div class="form-group hidden" id="group_icms" style="flex: 1;">
+            <label>4. Alíquota ICMS</label>
+            <select id="icms">
+                <option value="">-- Selecione --</option>
+                <option value="12%">12%</option>
+                <option value="17%">17%</option>
+            </select>
+        </div>
+
+        <div class="form-group hidden" id="group_iss" style="flex: 1;">
+            <label>4. Alíquota ISS (%)</label>
+            <input type="number" id="iss" placeholder="Ex: 2 a 5" min="2" max="5" step="0.1">
+        </div>
+
+        <div class="form-group hidden" id="group_sn" style="flex: 1;">
+            <label>5. Alíquota Simples (%)</label>
+            <input type="number" id="sn" placeholder="Ex: 1 a 19" min="1" max="19" step="0.1">
+        </div>
+    </div>
+
+    <button onclick="calcularReforma()">🔄 Calcular Comparativo</button>
+
+    <!-- ÁREA DE RESULTADOS -->
+    <div id="statusOutput"></div>
+
+    <div class="results-row hidden" id="resultsArea">
+        <div class="result-col" id="outAsIs"></div>
+        <div class="result-col" id="outToBe"></div>
+    </div>
+</div>
+
+<!-- LÓGICA JAVASCRIPT -->
+<script>
+    // 1. Função para formatar números em Reais (BRL)
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // 2. Tradução da função Python converter_para_float
+    function converterParaFloat(valorStr) {
+        if (!valorStr) return 0.0;
+        let s = String(valorStr).trim().replace(/R\$/g, "").replace(/\s/g, "");
+        
+        if (s.includes(",") && s.includes(".")) {
+            s = s.replace(/\./g, "").replace(/,/g, ".");
+        } else if (s.includes(",")) {
+            s = s.replace(/,/g, ".");
+        }
+        
+        let valor = parseFloat(s);
+        return isNaN(valor) ? 0.0 : valor;
+    }
+
+    // 3. Atualizar campos visíveis (tradução do change event do Gradio)
+    function atualizarCampos() {
+        const cenario = document.getElementById('cenario').value;
+        const regime = document.getElementById('regime').value;
+
+        const showIcms = (cenario === "Cenário 1" && (regime === "Lucro Real" || regime === "Lucro Presumido"));
+        const showIss = (cenario === "Cenário 2");
+        const showSn = (regime === "Simples Nacional");
+
+        document.getElementById('group_icms').className = showIcms ? 'form-group' : 'form-group hidden';
+        document.getElementById('group_iss').className = showIss ? 'form-group' : 'form-group hidden';
+        document.getElementById('group_sn').className = showSn ? 'form-group' : 'form-group hidden';
+    }
+
+    // 4. Lógica principal de cálculo
+    function calcularReforma() {
+        // Captura e limpeza da interface antiga
+        const cenario = document.getElementById('cenario').value;
+        const regime = document.getElementById('regime').value;
+        const valorRaw = document.getElementById('valorFatura').value;
+        const icmsInput = document.getElementById('icms').value;
+        const issInput = parseFloat(document.getElementById('iss').value);
+        const snInput = parseFloat(document.getElementById('sn').value);
+
+        const statusOut = document.getElementById('statusOutput');
+        const asIsOut = document.getElementById('outAsIs');
+        const toBeOut = document.getElementById('outToBe');
+        const resultsArea = document.getElementById('resultsArea');
+
+        // Reset
+        statusOut.innerHTML = "";
+        resultsArea.classList.add('hidden');
+
+        // VALIDAÇÕES
+        if (!cenario) {
+            statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione o Cenário.</div>";
+            return;
+        }
+        if (!regime) {
+            statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione o Regime do Fornecedor.</div>";
+            return;
+        }
+
+        const totalFaturaAsis = converterParaFloat(valorRaw);
+        if (totalFaturaAsis <= 0) {
+            statusOut.innerHTML = "<div class='status-banner status-warning'>❌ <b>Erro:</b> Insira um valor válido para a Fatura Atual.</div>";
+            return;
+        }
+
+        let snRate = 0;
+        if (regime === "Simples Nacional") {
+            if (isNaN(snInput) || snInput < 1 || snInput > 19) {
+                statusOut.innerHTML = "<div class='status-banner status-warning'>❌ <b>Erro:</b> Insira o valor do Simples Nacional (1% a 19%).</div>";
+                return;
+            }
+            snRate = snInput / 100.0;
+        }
+
+        if (cenario === "Cenário 1" && (regime === "Lucro Real" || regime === "Lucro Presumido")) {
+            if (!icmsInput) {
+                statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione a alíquota de ICMS.</div>";
+                return;
+            }
+        }
+
+        let issRate = 0;
+        if (cenario === "Cenário 2") {
+            if (isNaN(issInput) || issInput < 2 || issInput > 5) {
+                statusOut.innerHTML = "<div class='status-banner status-warning'>❌ <b>Erro:</b> Insira o valor do ISS (2% a 5%).</div>";
+                return;
+            }
+            issRate = issInput / 100.0;
+        }
+
+        // VARIÁVEIS DE CÁLCULO
+        let precoSemImposto = 0, custoLiquidoAsis = 0, custoLiquidoTobe = 0;
+        let totalFaturaTobe = 0, detalheAsis = "", detalheTobe = "";
+
+        // CENÁRIO 1: MATÉRIA-PRIMA
+        if (cenario === "Cenário 1") {
+            const icmsRate = icmsInput === "17%" ? 0.17 : 0.12;
+
+            if (regime === "Lucro Real") {
+                const piscofinsRate = 0.0925;
+                precoSemImposto = totalFaturaAsis * (1 - icmsRate) * (1 - piscofinsRate);
+                
+                const icmsValAsis = totalFaturaAsis * icmsRate;
+                const piscofinsValAsis = (totalFaturaAsis - icmsValAsis) * piscofinsRate;
+                custoLiquidoAsis = totalFaturaAsis - icmsValAsis - piscofinsValAsis;
+
+                const precoNotaTobe = precoSemImposto / (1 - icmsRate);
+                const cbsValTobe = precoSemImposto * 0.09;
+                totalFaturaTobe = precoNotaTobe + cbsValTobe;
+
+                const icmsCredTobe = precoNotaTobe * icmsRate;
+                const cbsCredTobe = cbsValTobe;
+                custoLiquidoTobe = totalFaturaTobe - icmsCredTobe - cbsCredTobe;
+
+                detalheAsis = `<li><b>ICMS:</b> R$ ${formatarMoeda(icmsValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li><li class='hidden-item'><b>CBS:</b> R$ 0,00</li>`;
+                detalheTobe = `<li><b>ICMS:</b> R$ ${formatarMoeda(precoNotaTobe * icmsRate)}</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>CBS:</b> R$ ${formatarMoeda(cbsValTobe)}</li>`;
+                
+            } else if (regime === "Lucro Presumido") {
+                const piscofinsRate = 0.0365;
+                const piscofinsCredRate = 0.0925;
+                
+                precoSemImposto = totalFaturaAsis * (1 - icmsRate) * (1 - piscofinsRate);
+                const icmsValAsis = totalFaturaAsis * icmsRate;
+                const piscofinsValAsis = (totalFaturaAsis - icmsValAsis) * piscofinsCredRate;
+                custoLiquidoAsis = totalFaturaAsis - icmsValAsis - piscofinsValAsis;
+
+                const precoNotaTobe = precoSemImposto / (1 - icmsRate);
+                const cbsValTobe = precoNotaTobe * 0.09;
+                totalFaturaTobe = precoNotaTobe + cbsValTobe;
+
+                const icmsCredTobe = precoNotaTobe * icmsRate;
+                const cbsCredTobe = cbsValTobe;
+                custoLiquidoTobe = totalFaturaTobe - icmsCredTobe - cbsCredTobe;
+
+                detalheAsis = `<li><b>ICMS:</b> R$ ${formatarMoeda(icmsValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li><li class='hidden-item'><b>CBS:</b> R$ 0,00</li>`;
+                detalheTobe = `<li><b>ICMS:</b> R$ ${formatarMoeda(precoNotaTobe * icmsRate)}</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>CBS:</b> R$ ${formatarMoeda(cbsValTobe)}</li>`;
+
+            } else { // Simples Nacional
+                const simplesRate = 0.04;
+                precoSemImposto = totalFaturaAsis * (1 - simplesRate);
+                const piscofinsCredAsis = totalFaturaAsis * 0.0925;
+                custoLiquidoAsis = totalFaturaAsis - piscofinsCredAsis;
+
+                totalFaturaTobe = totalFaturaAsis;
+                const simplesCredTobe = totalFaturaTobe * snRate;
+                custoLiquidoTobe = totalFaturaTobe - simplesCredTobe;
+
+                detalheAsis = `<li><b>ICMS:</b> R$ 0,00</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsCredAsis)} <i>(Crédito)</i></li><li><b>Simples Nacional:</b> R$ ${formatarMoeda(totalFaturaAsis * simplesRate)}</li>`;
+                detalheTobe = `<li><b>ICMS:</b> R$ 0,00</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>Simples Nacional:</b> R$ ${formatarMoeda(simplesCredTobe)}</li>`;
+            }
+        } 
+        
+        // CENÁRIO 2: SERVIÇOS
+        else {
+            let piscofinsRate = 0.0;
+            if (regime === "Lucro Real") piscofinsRate = 0.0925;
+            else if (regime === "Lucro Presumido") piscofinsRate = 0.0365;
+
+            const aliquotaTotalAsis = issRate + piscofinsRate;
+            precoSemImposto = totalFaturaAsis * (1 - aliquotaTotalAsis);
+
+            const issValAsis = totalFaturaAsis * issRate;
+            const piscofinsValAsis = totalFaturaAsis * piscofinsRate;
+            custoLiquidoAsis = totalFaturaAsis;
+
+            const issTobe = issRate;
+            const precoNotaTobe = precoSemImposto / (1 - issTobe);
+            const cbsValTobe = precoNotaTobe * 0.09;
+            
+            totalFaturaTobe = precoNotaTobe + cbsValTobe;
+            custoLiquidoTobe = totalFaturaTobe - cbsValTobe;
+
+            detalheAsis = `<li><b>ISS:</b> R$ ${formatarMoeda(issValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li><li class='hidden-item'><b>CBS:</b> R$ 0,00</li>`;
+            detalheTobe = `<li><b>ISS:</b> R$ ${formatarMoeda(precoNotaTobe * issTobe)}</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>CBS:</b> R$ ${formatarMoeda(cbsValTobe)}</li>`;
+        }
+
+        // CONSTRUÇÃO DA INTERFACE FINAL
+        const variacao = custoLiquidoAsis - custoLiquidoTobe;
+        const pctVariacao = custoLiquidoAsis > 0 ? (Math.abs(variacao) / custoLiquidoAsis) * 100 : 0;
+
+        let statusHtml = "";
+        if (Math.abs(variacao) < 0.01) {
+            statusHtml = "<div class='status-banner status-neutral'>⚖️ <b>SEM IMPACTO NO CUSTO LÍQUIDO</b></div>";
+        } else if (variacao > 0) {
+            statusHtml = `<div class='status-banner status-success'>✅ <b>GANHO DE CUSTO:</b> Economia de <b>R$ ${formatarMoeda(variacao)}</b> (${pctVariacao.toFixed(2)}% de redução)</div>`;
+        } else {
+            statusHtml = `<div class='status-banner status-warning'>⚠️ <b>AUMENTO DE CUSTO:</b> Elevação de <b>R$ ${formatarMoeda(Math.abs(variacao))}</b> (+${pctVariacao.toFixed(2)}% no custo)</div>`;
+        }
+
+        const htmlAsis = `
+            <div class='result-card card-asis'>
+                <h3>📊 COMO ESTÁ (Cenário Atual)</h3>
+                <hr class='card-divider'>
+                <p class='card-item'><b>Total da Fatura:</b> R$ ${formatarMoeda(totalFaturaAsis)}</p>
+                <ul class='card-list'>${detalheAsis}</ul>
+                <p class='card-item'><b>Custo Total Líquido:</b> R$ ${formatarMoeda(precoSemImposto)}</p>
+                <div class='highlight-cost highlight-cost-box'>CUSTO TOTAL DA FATURA:<br><b>R$ ${formatarMoeda(totalFaturaAsis)}</b></div>
+            </div>`;
+
+        const htmlTobe = `
+            <div class='result-card card-tobe'>
+                <h3>🚀 TO BE (Reforma 2027)</h3>
+                <hr class='card-divider'>
+                <p class='card-item'><b>Total da Fatura:</b> R$ ${formatarMoeda(totalFaturaTobe)}</p>
+                <ul class='card-list'>${detalheTobe}</ul>
+                <p class='card-item'><b>Custo Total Líquido:</b> R$ ${formatarMoeda(precoSemImposto)}</p>
+                <div class='highlight-cost highlight-cost-box'>CUSTO TOTAL DA FATURA:<br><b>R$ ${formatarMoeda(totalFaturaTobe)}</b></div>
+            </div>`;
+
+        // Renderizar na tela
+        statusOut.innerHTML = statusHtml;
+        asIsOut.innerHTML = htmlAsis;
+        toBeOut.innerHTML = htmlTobe;
+        resultsArea.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
