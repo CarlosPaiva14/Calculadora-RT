@@ -130,6 +130,24 @@
             margin-top: 0;
             margin-bottom: 8px;
         }
+        
+        .card-badge {
+            font-size: 0.8rem;
+            background-color: #e2e8f0;
+            color: #475569;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .card-badge {
+                background-color: #334155;
+                color: #cbd5e1;
+            }
+        }
 
         .card-divider {
             border: 0;
@@ -162,7 +180,7 @@
             text-align: center;
         }
 
-        /* Cores fixas da caixa de destaque (mesmo no modo escuro mantém legibilidade) */
+        /* Cores fixas da caixa de destaque */
         .highlight-cost-box {
             background-color: #eff6ff;
             color: #1d4ed8;
@@ -206,16 +224,29 @@
 
     <!-- FORMULÁRIO -->
     <div class="form-row">
+        <!-- CAMPO: Departamento -->
         <div class="form-group">
-            <label>1. Selecione o Cenário</label>
-            <select id="cenario" onchange="atualizarCampos()">
+            <label>Departamento</label>
+            <select id="departamento" onchange="atualizarCampos()">
                 <option value="">-- Selecione --</option>
-                <option value="Cenário 1">Cenário 1 - Aquisição de Matéria-Prima</option>
-                <option value="Cenário 2">Cenário 2 - Aquisição de Serviços</option>
+                <option value="Diretos">Diretos</option>
+                <option value="Indiretos">Indiretos</option>
+                <option value="Facção">Facção</option>
             </select>
         </div>
+        
+        <!-- CAMPO: Tipo de Aquisição -->
+        <div class="form-group" id="group_aquisicao">
+            <label>Tipo de Aquisição</label>
+            <select id="cenario" onchange="atualizarCampos()">
+                <option value="">-- Selecione --</option>
+                <option value="Cenário 1">Aquisição de Matéria-Prima</option>
+                <option value="Cenário 2">Aquisição de Serviços</option>
+            </select>
+        </div>
+        
         <div class="form-group">
-            <label>2. Regime do Fornecedor</label>
+            <label>Regime do Fornecedor</label>
             <select id="regime" onchange="atualizarCampos()">
                 <option value="">-- Selecione --</option>
                 <option value="Lucro Real">Lucro Real</option>
@@ -227,12 +258,12 @@
 
     <div class="form-row">
         <div class="form-group" style="flex: 2;">
-            <label>3. Valor Total da Fatura Atual (R$)</label>
+            <label>Valor Total da Fatura Atual (R$)</label>
             <input type="text" id="valorFatura" placeholder="Ex: 100.000,00">
         </div>
 
         <div class="form-group hidden" id="group_icms" style="flex: 1;">
-            <label>4. Alíquota ICMS</label>
+            <label>Alíquota ICMS</label>
             <select id="icms">
                 <option value="">-- Selecione --</option>
                 <option value="12%">12%</option>
@@ -241,12 +272,12 @@
         </div>
 
         <div class="form-group hidden" id="group_iss" style="flex: 1;">
-            <label>4. Alíquota ISS (%)</label>
+            <label>Alíquota ISS (%)</label>
             <input type="number" id="iss" placeholder="Ex: 2 a 5" min="2" max="5" step="0.1">
         </div>
 
         <div class="form-group hidden" id="group_sn" style="flex: 1;">
-            <label>5. Alíquota Simples (%)</label>
+            <label>Alíquota Simples (%)</label>
             <input type="number" id="sn" placeholder="Ex: 1 a 19" min="1" max="19" step="0.1">
         </div>
     </div>
@@ -284,12 +315,55 @@
         return isNaN(valor) ? 0.0 : valor;
     }
 
-    // 3. Atualizar campos visíveis (tradução do change event do Gradio)
+    // 3. Atualizar campos visíveis e recriar opções do select dinamicamente
     function atualizarCampos() {
-        const cenario = document.getElementById('cenario').value;
+        const departamento = document.getElementById('departamento').value;
+        const groupAquisicao = document.getElementById('group_aquisicao');
+        const cenarioSelect = document.getElementById('cenario');
+        
+        let currentCenario = cenarioSelect.value;
+        
+        // REGRAS DE NEGÓCIO DA INTERFACE
+        if (departamento === "Indiretos") {
+            groupAquisicao.classList.remove('hidden');
+            cenarioSelect.innerHTML = `
+                <option value="">-- Selecione --</option>
+                <option value="Material">Material</option>
+                <option value="Cenário 2">Aquisição de Serviços</option>
+            `;
+            if (currentCenario !== "Material" && currentCenario !== "Cenário 2") {
+                currentCenario = "";
+            }
+            
+        } else if (departamento === "Diretos" || departamento === "Facção") {
+            groupAquisicao.classList.add('hidden');
+            cenarioSelect.innerHTML = `
+                <option value="Cenário 1">Aquisição de Matéria-Prima</option>
+            `;
+            currentCenario = "Cenário 1";
+            
+        } else {
+            groupAquisicao.classList.remove('hidden');
+            cenarioSelect.innerHTML = `
+                <option value="">-- Selecione --</option>
+                <option value="Cenário 1">Aquisição de Matéria-Prima</option>
+                <option value="Cenário 2">Aquisição de Serviços</option>
+            `;
+            if (currentCenario !== "Cenário 1" && currentCenario !== "Cenário 2") {
+                currentCenario = "";
+            }
+        }
+        
+        cenarioSelect.value = currentCenario;
+
+        const cenario = cenarioSelect.value;
         const regime = document.getElementById('regime').value;
 
-        const showIcms = (cenario === "Cenário 1" && (regime === "Lucro Real" || regime === "Lucro Presumido"));
+        // ICMS escondido se for Facção, pois não há tomada de crédito de ICMS neste departamento
+        const showIcms = ((cenario === "Cenário 1" || cenario === "Material") && 
+                          (regime === "Lucro Real" || regime === "Lucro Presumido") && 
+                          (departamento !== "Facção"));
+                          
         const showIss = (cenario === "Cenário 2");
         const showSn = (regime === "Simples Nacional");
 
@@ -300,8 +374,8 @@
 
     // 4. Lógica principal de cálculo
     function calcularReforma() {
-        // Captura e limpeza da interface antiga
-        const cenario = document.getElementById('cenario').value;
+        const departamento = document.getElementById('departamento').value;
+        let cenario = document.getElementById('cenario').value;
         const regime = document.getElementById('regime').value;
         const valorRaw = document.getElementById('valorFatura').value;
         const icmsInput = document.getElementById('icms').value;
@@ -318,15 +392,21 @@
         resultsArea.classList.add('hidden');
 
         // VALIDAÇÕES
+        if (!departamento) {
+            statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione o Departamento.</div>";
+            return;
+        }
+        if (departamento === "Diretos" || departamento === "Facção") {
+            cenario = "Cenário 1"; // Trava de segurança
+        }
         if (!cenario) {
-            statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione o Cenário.</div>";
+            statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione o Tipo de Aquisição.</div>";
             return;
         }
         if (!regime) {
             statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione o Regime do Fornecedor.</div>";
             return;
         }
-
         const totalFaturaAsis = converterParaFloat(valorRaw);
         if (totalFaturaAsis <= 0) {
             statusOut.innerHTML = "<div class='status-banner status-warning'>❌ <b>Erro:</b> Insira um valor válido para a Fatura Atual.</div>";
@@ -342,7 +422,7 @@
             snRate = snInput / 100.0;
         }
 
-        if (cenario === "Cenário 1" && (regime === "Lucro Real" || regime === "Lucro Presumido")) {
+        if ((cenario === "Cenário 1" || cenario === "Material") && (regime === "Lucro Real" || regime === "Lucro Presumido") && departamento !== "Facção") {
             if (!icmsInput) {
                 statusOut.innerHTML = "<div class='status-banner status-warning'>⚠️ <b>Atenção:</b> Selecione a alíquota de ICMS.</div>";
                 return;
@@ -362,65 +442,91 @@
         let precoSemImposto = 0, custoLiquidoAsis = 0, custoLiquidoTobe = 0;
         let totalFaturaTobe = 0, detalheAsis = "", detalheTobe = "";
 
-        // CENÁRIO 1: MATÉRIA-PRIMA
-        if (cenario === "Cenário 1") {
-            const icmsRate = icmsInput === "17%" ? 0.17 : 0.12;
+        // Captura do ICMS (zerado automaticamente se for Facção)
+        let icmsRate = 0;
+        if (departamento !== "Facção") {
+            if (icmsInput === "17%") icmsRate = 0.17;
+            else if (icmsInput === "12%") icmsRate = 0.12;
+        }
 
+        // =========================================================================
+        // CENÁRIO 1 E MATERIAL
+        // =========================================================================
+        if (cenario === "Cenário 1" || cenario === "Material") {
+            
+            // --- 1. CÁLCULO AS IS (Com base no Departamento) ---
+            let icmsValAsis = 0;
+            let piscofinsValAsis = 0;
+
+            if (departamento === "Indiretos") {
+                // Sem crédito
+                custoLiquidoAsis = totalFaturaAsis;
+                detalheAsis = `<li><b>ICMS:</b> R$ 0,00 <i>(Sem crédito)</i></li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Sem crédito)</i></li>`;
+            
+            } else if (departamento === "Facção") {
+                // Crédito 9.25% de PIS/COFINS (Sem ICMS)
+                piscofinsValAsis = totalFaturaAsis * 0.0925;
+                custoLiquidoAsis = totalFaturaAsis - piscofinsValAsis;
+                detalheAsis = `<li><b>ICMS:</b> R$ 0,00 <i>(Sem crédito)</i></li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)} <i>(Crédito 9,25%)</i></li>`;
+            
+            } else if (departamento === "Diretos") {
+                // Crédito ICMS (se houver) e Crédito 9.25% PIS/COFINS
+                icmsValAsis = totalFaturaAsis * icmsRate;
+                piscofinsValAsis = (totalFaturaAsis - icmsValAsis) * 0.0925;
+                custoLiquidoAsis = totalFaturaAsis - icmsValAsis - piscofinsValAsis;
+                detalheAsis = `<li><b>ICMS:</b> R$ ${formatarMoeda(icmsValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)} <i>(Crédito 9,25%)</i></li>`;
+            }
+
+            // Se for Simples Nacional, adiciona a linha informativa que havia no código original AS IS
+            if (regime === "Simples Nacional") {
+                const infoSimplesAsis = `<li><b>Simples Nacional:</b> R$ ${formatarMoeda(totalFaturaAsis * 0.04)} <i>(Na NF)</i></li>`;
+                detalheAsis += infoSimplesAsis;
+            }
+
+            // --- 2. CÁLCULO TO BE (Memória original mantida intacta) ---
             if (regime === "Lucro Real") {
                 const piscofinsRate = 0.0925;
                 precoSemImposto = totalFaturaAsis * (1 - icmsRate) * (1 - piscofinsRate);
                 
-                const icmsValAsis = totalFaturaAsis * icmsRate;
-                const piscofinsValAsis = (totalFaturaAsis - icmsValAsis) * piscofinsRate;
-                custoLiquidoAsis = totalFaturaAsis - icmsValAsis - piscofinsValAsis;
-
                 const precoNotaTobe = precoSemImposto / (1 - icmsRate);
                 const cbsValTobe = precoSemImposto * 0.09;
                 totalFaturaTobe = precoNotaTobe + cbsValTobe;
-
+                
                 const icmsCredTobe = precoNotaTobe * icmsRate;
                 const cbsCredTobe = cbsValTobe;
                 custoLiquidoTobe = totalFaturaTobe - icmsCredTobe - cbsCredTobe;
-
-                detalheAsis = `<li><b>ICMS:</b> R$ ${formatarMoeda(icmsValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li><li class='hidden-item'><b>CBS:</b> R$ 0,00</li>`;
+                
                 detalheTobe = `<li><b>ICMS:</b> R$ ${formatarMoeda(precoNotaTobe * icmsRate)}</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>CBS:</b> R$ ${formatarMoeda(cbsValTobe)}</li>`;
                 
             } else if (regime === "Lucro Presumido") {
                 const piscofinsRate = 0.0365;
-                const piscofinsCredRate = 0.0925;
-                
                 precoSemImposto = totalFaturaAsis * (1 - icmsRate) * (1 - piscofinsRate);
-                const icmsValAsis = totalFaturaAsis * icmsRate;
-                const piscofinsValAsis = (totalFaturaAsis - icmsValAsis) * piscofinsCredRate;
-                custoLiquidoAsis = totalFaturaAsis - icmsValAsis - piscofinsValAsis;
-
+                
                 const precoNotaTobe = precoSemImposto / (1 - icmsRate);
                 const cbsValTobe = precoNotaTobe * 0.09;
                 totalFaturaTobe = precoNotaTobe + cbsValTobe;
-
+                
                 const icmsCredTobe = precoNotaTobe * icmsRate;
                 const cbsCredTobe = cbsValTobe;
                 custoLiquidoTobe = totalFaturaTobe - icmsCredTobe - cbsCredTobe;
-
-                detalheAsis = `<li><b>ICMS:</b> R$ ${formatarMoeda(icmsValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li><li class='hidden-item'><b>CBS:</b> R$ 0,00</li>`;
+                
                 detalheTobe = `<li><b>ICMS:</b> R$ ${formatarMoeda(precoNotaTobe * icmsRate)}</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>CBS:</b> R$ ${formatarMoeda(cbsValTobe)}</li>`;
 
             } else { // Simples Nacional
                 const simplesRate = 0.04;
                 precoSemImposto = totalFaturaAsis * (1 - simplesRate);
-                const piscofinsCredAsis = totalFaturaAsis * 0.0925;
-                custoLiquidoAsis = totalFaturaAsis - piscofinsCredAsis;
-
+                
                 totalFaturaTobe = totalFaturaAsis;
                 const simplesCredTobe = totalFaturaTobe * snRate;
                 custoLiquidoTobe = totalFaturaTobe - simplesCredTobe;
-
-                detalheAsis = `<li><b>ICMS:</b> R$ 0,00</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsCredAsis)} <i>(Crédito)</i></li><li><b>Simples Nacional:</b> R$ ${formatarMoeda(totalFaturaAsis * simplesRate)}</li>`;
+                
                 detalheTobe = `<li><b>ICMS:</b> R$ 0,00</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>Simples Nacional:</b> R$ ${formatarMoeda(simplesCredTobe)}</li>`;
             }
         } 
         
+        // =========================================================================
         // CENÁRIO 2: SERVIÇOS
+        // =========================================================================
         else {
             let piscofinsRate = 0.0;
             if (regime === "Lucro Real") piscofinsRate = 0.0925;
@@ -431,7 +537,15 @@
 
             const issValAsis = totalFaturaAsis * issRate;
             const piscofinsValAsis = totalFaturaAsis * piscofinsRate;
-            custoLiquidoAsis = totalFaturaAsis;
+            
+            // AS IS para Serviços não tomava crédito originalmente e Indiretos também não.
+            custoLiquidoAsis = totalFaturaAsis; 
+
+            if (departamento === "Indiretos") {
+                detalheAsis = `<li><b>ISS:</b> R$ ${formatarMoeda(issValAsis)} <i>(Sem crédito)</i></li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)} <i>(Sem crédito)</i></li>`;
+            } else {
+                detalheAsis = `<li><b>ISS:</b> R$ ${formatarMoeda(issValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li>`;
+            }
 
             const issTobe = issRate;
             const precoNotaTobe = precoSemImposto / (1 - issTobe);
@@ -439,12 +553,13 @@
             
             totalFaturaTobe = precoNotaTobe + cbsValTobe;
             custoLiquidoTobe = totalFaturaTobe - cbsValTobe;
-
-            detalheAsis = `<li><b>ISS:</b> R$ ${formatarMoeda(issValAsis)}</li><li><b>PIS/COFINS:</b> R$ ${formatarMoeda(piscofinsValAsis)}</li><li class='hidden-item'><b>CBS:</b> R$ 0,00</li>`;
+            
             detalheTobe = `<li><b>ISS:</b> R$ ${formatarMoeda(precoNotaTobe * issTobe)}</li><li><b>PIS/COFINS:</b> R$ 0,00 <i>(Extinto)</i></li><li><b>CBS:</b> R$ ${formatarMoeda(cbsValTobe)}</li>`;
         }
 
-        // CONSTRUÇÃO DA INTERFACE FINAL
+        // =========================================================================
+        // RENDERIZAÇÃO DA INTERFACE
+        // =========================================================================
         const variacao = custoLiquidoAsis - custoLiquidoTobe;
         const pctVariacao = custoLiquidoAsis > 0 ? (Math.abs(variacao) / custoLiquidoAsis) * 100 : 0;
 
@@ -456,28 +571,33 @@
         } else {
             statusHtml = `<div class='status-banner status-warning'>⚠️ <b>AUMENTO DE CUSTO:</b> Elevação de <b>R$ ${formatarMoeda(Math.abs(variacao))}</b> (+${pctVariacao.toFixed(2)}% no custo)</div>`;
         }
+        
+        const nomeCenario = cenario === "Cenário 1" ? "Matéria-Prima" : (cenario === "Cenário 2" ? "Serviços" : cenario);
+        const deptoBadge = `<span class="card-badge">Depto: ${departamento} | Tipo: ${nomeCenario}</span>`;
 
+        // CORREÇÃO: "Custo Total Líquido" agora reflete a variável correta "custoLiquidoAsis/Tobe" ao invés do precoSemImposto
         const htmlAsis = `
             <div class='result-card card-asis'>
                 <h3>📊 COMO ESTÁ (Cenário Atual)</h3>
+                ${deptoBadge}
                 <hr class='card-divider'>
                 <p class='card-item'><b>Total da Fatura:</b> R$ ${formatarMoeda(totalFaturaAsis)}</p>
                 <ul class='card-list'>${detalheAsis}</ul>
-                <p class='card-item'><b>Custo Total Líquido:</b> R$ ${formatarMoeda(precoSemImposto)}</p>
+                <p class='card-item'><b>Custo Total Líquido:</b> R$ ${formatarMoeda(custoLiquidoAsis)}</p>
                 <div class='highlight-cost highlight-cost-box'>CUSTO TOTAL DA FATURA:<br><b>R$ ${formatarMoeda(totalFaturaAsis)}</b></div>
             </div>`;
 
         const htmlTobe = `
             <div class='result-card card-tobe'>
                 <h3>🚀 TO BE (Reforma 2027)</h3>
+                ${deptoBadge}
                 <hr class='card-divider'>
                 <p class='card-item'><b>Total da Fatura:</b> R$ ${formatarMoeda(totalFaturaTobe)}</p>
                 <ul class='card-list'>${detalheTobe}</ul>
-                <p class='card-item'><b>Custo Total Líquido:</b> R$ ${formatarMoeda(precoSemImposto)}</p>
+                <p class='card-item'><b>Custo Total Líquido:</b> R$ ${formatarMoeda(custoLiquidoTobe)}</p>
                 <div class='highlight-cost highlight-cost-box'>CUSTO TOTAL DA FATURA:<br><b>R$ ${formatarMoeda(totalFaturaTobe)}</b></div>
             </div>`;
 
-        // Renderizar na tela
         statusOut.innerHTML = statusHtml;
         asIsOut.innerHTML = htmlAsis;
         toBeOut.innerHTML = htmlTobe;
