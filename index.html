@@ -1216,23 +1216,21 @@
       render();
     }, 0));
 
-    $('#copy').addEventListener('click', () => {
-      const d = calculate(getState());
-      if (!d.gross) return;
-      const text = summary(d);
-      copyText(text).then(ok => {
-        if (ok) {
-          $('#copy-fallback').hidden = true;
-          flash('Resumo copiado');
-        } else {
-          $('#copy-fallback').hidden = false;
-          $('#copy-area').value = text;
-          $('#copy-area').focus();
-          $('#copy-area').select();
-          flash('Copie manualmente');
-        }
-      });
-    });
+$('#copy').addEventListener('click', async () => {
+  const d = calculate(getState());
+  if (!d.gross) return;
+
+  const text = summary(d);
+  const ok = await copyText(text);
+
+  $('#copy-fallback').hidden = true;
+
+  if (ok) {
+    flash('Resumo copiado');
+  } else {
+    flash('Não foi possível copiar');
+  }
+});
 
     render();
   </script>
